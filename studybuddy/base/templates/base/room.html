@@ -1,0 +1,10 @@
+{% extends 'main.html' %}
+
+{% block content %}
+{%if room%}
+<h1>{{room.name}}</h1>
+{%else%}
+<h1>No room to display</h1>
+
+{%endif%}
+{% endblock content %}
