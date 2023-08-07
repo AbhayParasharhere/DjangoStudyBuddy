@@ -6,7 +6,7 @@ from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
 from django.contrib.auth.forms import UserCreationForm
-from .models import Room, Topic
+from .models import Room, Topic, Message
 from .forms import RoomForm
 
 
@@ -59,7 +59,21 @@ def home(request):
 def room(request, pk):
     room = Room.objects.get(id=pk)
     room_messages = room.message_set.all().order_by('-created')
-    context = {'room': room, 'room_messages': room_messages}
+    participants = room.participants.all()
+    if request.method == 'POST':
+        try:
+            body = request.POST.get('body')
+            if request.user.is_authenticated:
+                new_message = Message.objects.create(
+                    body=body, room=room, user=request.user)
+                room.participants.add(request.user)
+                return redirect('room', pk=room.id)
+            else:
+                raise Exception('Not logged in')
+        except:
+            messages.error(request, 'You must be logged in to message')
+    context = {'room': room, 'room_messages': room_messages,
+               'participants': participants}
     return render(request, 'base/room.html', context=context)
 
 
@@ -116,3 +130,14 @@ def deleteRoom(request, pk):
         return redirect('home')
     context = {'obj': room}
     return render(request, 'base/delete.html', context)
+
+
+@login_required(login_url='login')
+def deleteMessage(request, pk):
+    message = Message.objects.get(id=pk)
+    if request.user != message.user:
+        return HttpResponse("You are not allowed to delete")
+    if request.method == 'POST':
+        message.delete()
+        return redirect('home')
+    return render(request, 'base/delete.html', {'obj': message})
