@@ -20,9 +20,20 @@
       <div>
         {%if message.user == request.user%}
         <a href="{%url 'delete-message' message.id%}">Delete</a>
+        <a href="{%url 'edit-message' message.id%}?room_id={{room.id}}">Edit</a>
         {%endif%}
-        <small>@{{message.user}} {{message.created | timesince}}</small>
+        <small>@{{message.user}} {{message.updated | timesince}}</small>
+        {%if edit_message_id == message.id%}
+        <form
+          method="POST"
+          action="{%url 'edit-message' message.id%}?room_id={{room.id}}"
+        >
+          {%csrf_token%}
+          <input type="text" name="body" value="{{message.body}}" />
+        </form>
+        {%else%}
         <p>{{message.body}}</p>
+        {%endif%}
         <hr />
       </div>
       {%endfor%}

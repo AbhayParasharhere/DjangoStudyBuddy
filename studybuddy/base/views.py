@@ -58,6 +58,8 @@ def home(request):
 
 def room(request, pk):
     room = Room.objects.get(id=pk)
+    edit_message_id = request.session.get('edit_message_id', -1)
+
     room_messages = room.message_set.all().order_by('-created')
     participants = room.participants.all()
     if request.method == 'POST':
@@ -73,7 +75,7 @@ def room(request, pk):
         except:
             messages.error(request, 'You must be logged in to message')
     context = {'room': room, 'room_messages': room_messages,
-               'participants': participants}
+               'participants': participants, 'edit_message_id': edit_message_id}
     return render(request, 'base/room.html', context=context)
 
 
@@ -141,3 +143,19 @@ def deleteMessage(request, pk):
         message.delete()
         return redirect('home')
     return render(request, 'base/delete.html', {'obj': message})
+
+
+@login_required(login_url='login')
+def editMessage(request, pk):
+    room_id = request.GET.get('room_id')
+    message = Message.objects.get(id=pk)
+    edit_done = False
+    if request.user != message.user:
+        return HttpResponse("You are not allowed to edit")
+    if request.method == 'POST':
+        message.body = request.POST.get('body')
+        message.save()
+        edit_done = True
+
+    request.session['edit_message_id'] = message.id if edit_done == False else -1
+    return redirect('room', pk=room_id)
