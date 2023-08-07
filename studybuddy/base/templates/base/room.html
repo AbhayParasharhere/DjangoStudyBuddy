@@ -3,6 +3,19 @@
 {% block content %}
 {%if room%}
 <h1>{{room.name}}</h1>
+<p>{{room.description}}</p>
+
+<div class="comment-wrapper">
+    <h3>Conversation</h3>
+    <hr />
+    {%for message in room_messages%}
+        <div>
+            <small>@{{message.user}}  {{message.created | timesince}}</small>
+            <p>{{message.body}}</p>
+            <hr />
+        </div>
+    {%endfor%}
+</div>
 {%else%}
 <h1>No room to display</h1>
 
