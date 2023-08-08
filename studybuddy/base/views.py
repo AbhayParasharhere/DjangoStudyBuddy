@@ -64,16 +64,21 @@ def room(request, pk):
     participants = room.participants.all()
     if request.method == 'POST':
         try:
-            body = request.POST.get('body')
-            if request.user.is_authenticated:
-                new_message = Message.objects.create(
-                    body=body, room=room, user=request.user)
+            if request.POST.get('msgBody'):
+                msg_to_change = Message.objects.get(
+                    id=int(request.POST.get('msgId')))
+                msg_to_change.body = request.POST.get('msgBody')
+                msg_to_change.save()
+                return redirect('room', pk=room.id)
+            elif request.user.is_authenticated and not (request.POST.get('msgBody')):
+                Message.objects.create(
+                    body=request.POST.get('body'), room=room, user=request.user)
                 room.participants.add(request.user)
                 return redirect('room', pk=room.id)
             else:
                 raise Exception('Not logged in')
-        except:
-            messages.error(request, 'You must be logged in to message')
+        except Exception as E:
+            messages.error(request, E)
     context = {'room': room, 'room_messages': room_messages,
                'participants': participants, 'edit_message_id': edit_message_id}
     return render(request, 'base/room.html', context=context)
@@ -143,19 +148,3 @@ def deleteMessage(request, pk):
         message.delete()
         return redirect('home')
     return render(request, 'base/delete.html', {'obj': message})
-
-
-@login_required(login_url='login')
-def editMessage(request, pk):
-    room_id = request.GET.get('room_id')
-    message = Message.objects.get(id=pk)
-    edit_done = False
-    if request.user != message.user:
-        return HttpResponse("You are not allowed to edit")
-    if request.method == 'POST':
-        message.body = request.POST.get('body')
-        message.save()
-        edit_done = True
-
-    request.session['edit_message_id'] = message.id if edit_done == False else -1
-    return redirect('room', pk=room_id)

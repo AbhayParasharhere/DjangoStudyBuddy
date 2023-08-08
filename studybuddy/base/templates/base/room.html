@@ -5,59 +5,72 @@
     display: grid;
     grid-template-columns: 3fr 1fr;
   }
+  .hidden {
+    display: none;
+  }
+  .link {
+    text-decoration: underline;
+    cursor: pointer;
+  }
 </style>
+
+<script>
+  function handleButtonClick(messageId) {
+    console.log('Button clicked!')
+    var form = document.getElementById('form-' + messageId)
+    var body = document.getElementById('body-' + messageId)
+    form.classList.toggle('hidden')
+    body.classList.toggle('hidden')
+  }
+</script>
 
 <div class="room-container">
   <div>
-    {%if room%}
-    <h1>{{room.name}}</h1>
-    <p>{{room.description}}</p>
+    {% if room %}
+    <h1>{{ room.name }}</h1>
+    <p>{{ room.description }}</p>
 
     <div class="comment-wrapper">
       <h3>Conversation</h3>
       <hr />
-      {%for message in room_messages%}
+      {% for message in room_messages %}
       <div>
-        {%if message.user == request.user%}
-        <a href="{%url 'delete-message' message.id%}">Delete</a>
-        <a href="{%url 'edit-message' message.id%}?room_id={{room.id}}">Edit</a>
-        {%endif%}
-        <small>@{{message.user}} {{message.updated | timesince}}</small>
-        {%if edit_message_id == message.id%}
-        <form
-          method="POST"
-          action="{%url 'edit-message' message.id%}?room_id={{room.id}}"
-        >
-          {%csrf_token%}
-          <input type="text" name="body" value="{{message.body}}" />
-        </form>
-        {%else%}
-        <p>{{message.body}}</p>
-        {%endif%}
+        {% if message.user == request.user %}
+        <a href="{% url 'delete-message' message.id %}">Delete</a>
+        <a class="link" onClick="handleButtonClick('{{ message.id }}')">Edit</a>
+        {% endif %}
+        <small>@{{ message.user }} {{ message.updated | timesince }}</small>
+        <span id="form-{{ message.id }}" class="hidden">
+          <form method="POST" action="">
+            {% csrf_token %}
+            <input type="text" name="msgBody" value="{{ message.body }}" />
+            <input type="hidden" name="msgId" value="{{ message.id }}" />
+          </form>
+        </span>
+        <p id="body-{{ message.id }}">{{ message.body }}</p>
         <hr />
       </div>
-      {%endfor%}
+      {% endfor %}
     </div>
-    {%if request.user.is_authenticated%}
+    {% if request.user.is_authenticated %}
     <div class="comment-form">
       <form method="POST" action="">
-        {%csrf_token%}
+        {% csrf_token %}
         <input type="text" name="body" placeholder="Write your message..." />
       </form>
     </div>
-    {%endif%} {%else%}
+    {% endif %} {% else %}
     <h1>No room to display</h1>
-
-    {%endif%}
+    {% endif %}
   </div>
   <div>
     <h3>Participants</h3>
     <hr />
-    {%for participant in participants%}
+    {% for participant in participants %}
     <div>
-      <p>@{{participant.username}}</p>
+      <p>@{{ participant.username }}</p>
     </div>
-    {%endfor%}
+    {% endfor %}
   </div>
 </div>
 {% endblock content %}
