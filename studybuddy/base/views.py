@@ -1,6 +1,6 @@
 from django.http import HttpResponse
 from django.shortcuts import render, redirect
-from django.db.models import Q
+from django.db.models import Q, Count
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
@@ -56,7 +56,7 @@ def home(request):
     q = request.GET.get('q') if request.GET.get('q') != None else ''
     rooms = Room.objects.filter(Q(topic__name__icontains=q) | Q(
         name__icontains=q) | Q(description__icontains=q))
-    topics = Topic.objects.all()
+    topics = Topic.objects.all()[0:5]
     room_len = rooms.count()
     room_messages = Message.objects.filter(Q(room__topic__name__icontains=q))
     context = {'rooms': rooms, 'topics': topics,
@@ -66,6 +66,7 @@ def home(request):
 
 def room(request, pk):
     room = Room.objects.get(id=pk)
+
     edit_message_id = request.session.get('edit_message_id', -1)
 
     room_messages = room.message_set.all()
@@ -140,14 +141,17 @@ def registerPage(request):
     form = UserCreationForm()
     if request.method == 'POST':
         form = UserCreationForm(request.POST)
-        if form.is_valid():
-            user = form.save(commit=False)
-            user.username = user.username.lower()
-            user.save()
-            login(request, user)
-            return redirect('home')
-        else:
-            messages.error(request, 'An error occurred during registration')
+        try:
+            if form.is_valid():
+                user = form.save(commit=False)
+                user.username = user.username.lower()
+                user.save()
+                login(request, user)
+                return redirect('home')
+            else:
+                raise Exception 
+        except Exception as e:
+            messages.error(request, e)
     return render(request, 'base/login_register.html', {'form': form, 'page': page})
 
 
@@ -187,3 +191,17 @@ def updateUser(request):
             return redirect('user-profile', pk = user.id)
     context = {'form' : form}
     return render(request, 'base/update-user.html', context)
+
+
+def topicsPage(request):
+    q = request.GET.get('q') if request.GET.get('q') != None else ''
+    topics = Topic.objects.filter(name__icontains=q)
+    room_count = Room.objects.filter(topic__in=topics).count()
+    #room_count = Room.objects.all().count()
+    return render(request, 'base/topics.html', {"topics": topics, "room_count" : room_count})
+
+
+def activityPage(request):
+    room_messages = Message.objects.all()
+    context = {"room_messages" : room_messages}
+    return render(request, 'base/activity.html', context)
